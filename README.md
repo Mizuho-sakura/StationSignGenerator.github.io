@@ -1,2 +1,2 @@
-# StationSignGenerator.github.io
+# JRQ_StationSignGenerator
 JR九州風の駅名標を生成できるツールです。
