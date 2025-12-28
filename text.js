@@ -1,247 +1,103 @@
-//------------------
-//ナンバリング自動調整
-//------------------
+// --- 共通のスケール（圧縮）調整ロジック ---
+function getScaleX(length) {
+  if (length >= 10) return 0.55;
+  if (length >= 9)  return 0.62;
+  if (length >= 8)  return 0.7;
+  if (length >= 7)  return 0.8;
+  return 1.0;
+}
+
+// --- 共通の字間調整（tspan）ロジック ---
+// id: 対象のSVGテキスト要素ID, text: 文字列, type: 'main'か'sub'（メイン駅名か前後駅名かで間隔を変える）
+function updateTspanSpacing(elementId, text, type = 'sub') {
+  const el = document.getElementById(elementId);
+  el.innerHTML = "";
+  const len = text.length;
+
+  // 5文字以上、または0文字はそのまま表示
+  if (len >= 5 || len === 0) {
+    el.textContent = text;
+    return;
+  }
+
+  const chars = [...text];
+  let spacing = 0;
+
+  if (type === 'main') {
+    // 中央の大きなひらがな用
+    if (len === 4) spacing = 520;
+    if (len === 3) spacing = 760;
+    if (len === 2) spacing = 1300;
+  } else {
+    // 漢字や前後駅の小さい文字用
+    if (len === 4) spacing = 200;
+    if (len === 3) spacing = 300;
+    if (len === 2) spacing = 600;
+  }
+
+  const totalWidth = (chars.length - 1) * spacing;
+  chars.forEach((ch, i) => {
+    const t = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+    t.textContent = ch;
+    const x = -totalWidth / 2 + i * spacing;
+    t.setAttribute("x", x);
+    t.setAttribute("y", 0);
+    el.appendChild(t);
+  });
+}
+
+// --- 各イベントハンドラ ---
+
+// ナンバリング位置
 function adjustNumberingPosition() {
   const text = document.getElementById("input-ja").value;
   const group = document.getElementById("numbering-group");
-  // 基準位置
-  let baseX = -600;
-  // 文字数に応じて右へ逃がす
-  if (text.length >= 6) baseX = -700;
-
+  let baseX = (text.length >= 6) ? -700 : -600;
   group.setAttribute("transform", `translate(${baseX}, -300) scale(0.6)`);
 }
 
-// 入力のたびに調整
-document.getElementById("input-ja").addEventListener("input", adjustNumberingPosition);
-
-function adjustHiraganaScale() {
+// メインひらがな
+function handleMainJa() {
   const text = document.getElementById("input-ja").value;
-  const group = document.getElementById("name-ja-group");
-
-  let scaleX = 1; // 通常サイズ
-
-  if (text.length >= 7) {
-    scaleX = 0.8;   // 少し縮める
-  }
-  if (text.length >= 8) {
-    scaleX = 0.7;   // さらに縮める
-  }
-  if (text.length >= 9) {
-    scaleX = 0.62;   // 長い駅名用
-  }
-  if (text.length >= 10) {
-    scaleX = 0.55;   // 長い駅名用
-  }
-
-  group.setAttribute("transform", `translate(1800, 600) scale(${scaleX}, 1)`);
+  // スケール
+  const scale = getScaleX(text.length);
+  document.getElementById("name-ja-group").setAttribute("transform", `translate(1800, 600) scale(${scale}, 1)`);
+  // 字間
+  updateTspanSpacing("station-ja", text, 'main');
+  // ナンバリング位置も連動
+  adjustNumberingPosition();
 }
 
-document.getElementById("input-ja").addEventListener("input", adjustHiraganaScale);
-
-function updateHiragana() {
-  const text = document.getElementById("input-ja").value;
-  const ja = document.getElementById("station-ja");
-
-  // まず中身をクリア
-  ja.innerHTML = "";
-
-  const len = text.length;
-
-  // ▼ 5文字以上 → 通常表示（tspan 使わない）
-  if (len >= 5) {
-    ja.textContent = text;
-    return;
-  }
-
-  // ▼ ここから 4文字以下だけ字間調整
-  const chars = [...text];
-
-  // 文字数ごとの spacing
-  let spacing = 0;
-
-  if (len === 4) spacing = 520;   // ← 4文字のときの字間
-  if (len === 3) spacing = 760;   // ← 3文字のときの字間
-  if (len === 2) spacing = 1300;   // ← 2文字のとき
-  if (len === 1) spacing = 0;     // ← 1文字は中央に置くだけ
-
-  // 全体幅（中心から左右に配置するため）
-  const totalWidth = (chars.length - 1) * spacing;
-
-  // ▼ tspan を使って中心から均等配置
-  chars.forEach((ch, i) => {
-    const t = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-    t.textContent = ch;
-
-    const x = -totalWidth / 2 + i * spacing;
-    t.setAttribute("x", x);
-    t.setAttribute("y", 0);
-
-    ja.appendChild(t);
-  });
-}
-
-document.getElementById("input-ja").addEventListener("input", updateHiragana);
-function adjustHiraganaScale() {
-  const text = document.getElementById("input-ja").value;
-  const group = document.getElementById("name-ja-group");
-
-  let scaleX = 1; // 通常サイズ
-
-  if (text.length >= 7) {
-    scaleX = 0.8;   // 少し縮める
-  }
-  if (text.length >= 8) {
-    scaleX = 0.7;   // さらに縮める
-  }
-  if (text.length >= 9) {
-    scaleX = 0.62;   // 長い駅名用
-  }
-  if (text.length >= 10) {
-    scaleX = 0.55;   // 長い駅名用
-  }
-
-  group.setAttribute("transform", `translate(1800, 600) scale(${scaleX}, 1)`);
-}
-document.getElementById("input-ja").addEventListener("input", adjustHiraganaScale);
-
-
-
-function updateKanji() {
+// メイン漢字
+function handleMainKanji() {
   const text = document.getElementById("input-kana").value;
-  const ja = document.getElementById("station-kana");
-
-  // まず中身をクリア
-  ja.innerHTML = "";
-
-  const len = text.length;
-
-  // ▼ 5文字以上 → 通常表示（tspan 使わない）
-  if (len >= 5) {
-    ja.textContent = text;
-    return;
-  }
-
-  // ▼ ここから 4文字以下だけ字間調整
-  const chars = [...text];
-
-  // 文字数ごとの spacing
-  let spacing = 0;
-
-  if (len === 4) spacing = 200;   // ← 4文字のときの字間
-  if (len === 3) spacing = 300;   // ← 3文字のときの字間
-  if (len === 2) spacing = 600;   // ← 2文字のとき
-  if (len === 1) spacing = 0;     // ← 1文字は中央に置くだけ
-
-  // 全体幅（中心から左右に配置するため）
-  const totalWidth = (chars.length - 1) * spacing;
-
-  // ▼ tspan を使って中心から均等配置
-  chars.forEach((ch, i) => {
-    const t = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-    t.textContent = ch;
-
-    const x = -totalWidth / 2 + i * spacing;
-    t.setAttribute("x", x);
-    t.setAttribute("y", 0);
-
-    ja.appendChild(t);
-  });
+  updateTspanSpacing("station-kana", text, 'sub');
 }
 
-document.getElementById("input-kana").addEventListener("input", updateKanji);
-
-
-function adjustbsScale() {
+// 前駅
+function handleBs() {
   const text = document.getElementById("input-bs").value;
-  const group = document.getElementById("name-bs-group");
-
-  let scaleX = 1; // 通常サイズ
-
-  if (text.length >= 7) {
-    scaleX = 0.8;   // 少し縮める
-  }
-  if (text.length >= 8) {
-    scaleX = 0.7;   // さらに縮める
-  }
-  if (text.length >= 9) {
-    scaleX = 0.62;   // 長い駅名用
-  }
-  if (text.length >= 10) {
-    scaleX = 0.55;   // 長い駅名用
-  }
-
-  group.setAttribute("transform", `translate(720, 1950) scale(${scaleX}, 1)`);
+  const scale = getScaleX(text.length);
+  document.getElementById("name-bs-group").setAttribute("transform", `translate(720, 1950) scale(${scale}, 1)`);
+  updateTspanSpacing("b_station_ja", text, 'sub');
 }
-document.getElementById("input-bs").addEventListener("input", adjustbsScale);
 
-
-function adjustnsScale() {
+// 次駅
+function handleNs() {
   const text = document.getElementById("input-ns").value;
-  const group = document.getElementById("name-ns-group");
-
-  let scaleX = 1; // 通常サイズ
-
-  if (text.length >= 7) {
-    scaleX = 0.8;   // 少し縮める
-  }
-  if (text.length >= 8) {
-    scaleX = 0.7;   // さらに縮める
-  }
-  if (text.length >= 9) {
-    scaleX = 0.62;   // 長い駅名用
-  }
-  if (text.length >= 10) {
-    scaleX = 0.55;   // 長い駅名用
-  }
-
-  group.setAttribute("transform", `translate(2880, 1950) scale(${scaleX}, 1)`);
+  const scale = getScaleX(text.length);
+  document.getElementById("name-ns-group").setAttribute("transform", `translate(2880, 1950) scale(${scale}, 1)`);
+  updateTspanSpacing("n_station_ja", text, 'sub');
 }
 
-document.getElementById("input-ns").addEventListener("input", adjustnsScale);
+// --- イベントリスナーの登録 ---
+document.getElementById("input-ja").addEventListener("input", handleMainJa);
+document.getElementById("input-kana").addEventListener("input", handleMainKanji);
+document.getElementById("input-bs").addEventListener("input", handleBs);
+document.getElementById("input-ns").addEventListener("input", handleNs);
 
-
-
-function updatebsScale() {
-  const text = document.getElementById("input-bs").value;
-  const ja = document.getElementById("b_station_ja");
-
-  // まず中身をクリア
-  ja.innerHTML = "";
-
-  const len = text.length;
-
-  // ▼ 5文字以上 → 通常表示（tspan 使わない）
-  if (len >= 5) {
-    ja.textContent = text;
-    return;
-  }
-
-  // ▼ ここから 4文字以下だけ字間調整
-  const chars = [...text];
-
-  // 文字数ごとの spacing
-  let spacing = 0;
-
-  if (len === 4) spacing = 200;   // ← 4文字のときの字間
-  if (len === 3) spacing = 300;   // ← 3文字のときの字間
-  if (len === 2) spacing = 600;   // ← 2文字のとき
-  if (len === 1) spacing = 0;     // ← 1文字は中央に置くだけ
-
-  // 全体幅（中心から左右に配置するため）
-  const totalWidth = (chars.length - 1) * spacing;
-
-  // ▼ tspan を使って中心から均等配置
-  chars.forEach((ch, i) => {
-    const t = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
-    t.textContent = ch;
-
-    const x = -totalWidth / 2 + i * spacing;
-    t.setAttribute("x", x);
-    t.setAttribute("y", 0);
-
-    ja.appendChild(t);
-  });
-}
-
-document.getElementById("input-bs").addEventListener("input", updatebsScale);
+// --- 初期実行（リロード時に位置を合わせる） ---
+handleMainJa();
+handleMainKanji();
+handleBs();
+handleNs();
